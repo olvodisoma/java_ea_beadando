@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="hu" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title th:text="${appName}">Beadandó</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/theme/html5-up-massively/assets/css/main.css">
+</head>
+<body>
+<header>
+    <h1 th:text="${appName}">FX & MNB Beadandó</h1>
+    <nav>
+        <a href="/">Főoldal</a> |
+        <a href="/soap">SOAP (MNB)</a> |
+        <a href="/forex/account">Forex Account</a> |
+        <a href="/forex/open">Pozíció nyitása</a>
+    </nav>
+</header>
+
+<main>
+    <section>
+        <h2>Üdvözöllek a Java Beadandó projektben!</h2>
+        <p>Ez az alkalmazás a Magyar Nemzeti Bank árfolyamadatait és a Forex devizakereskedési információkat jeleníti meg.</p>
+        <ul>
+            <li>📈 <strong>SOAP menü</strong>: árfolyamadatok lekérése MNB-től és grafikonon megjelenítése</li>
+            <li>💰 <strong>Forex menük</strong>: OANDA API segítségével számlainformációk, aktuális árak és pozíciókezelés</li>
+            <li>🌐 <strong>Reszponzív webes felület</strong> – modern HTML5 téma</li>
+        </ul>
+    </section>
+
+    <section>
+        <h3>Technológiák</h3>
+        <p>Az alkalmazás <b>Java Spring Boot</b> keretrendszerrel, <b>Thymeleaf</b> sablonmotorral és <b>Chart.js</b> könyvtárral készült.</p>
+    </section>
+</main>
+
+<footer>
+    <p>Készítette: <strong>Ölvödi Soma</strong> — Neptun: FKMEUC</p>
+</footer>
+</body>
+</html>

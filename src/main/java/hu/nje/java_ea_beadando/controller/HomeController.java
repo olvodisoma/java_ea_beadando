@@ -1,0 +1,15 @@
+package hu.nje.java_ea_beadando.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@Controller
+public class HomeController {
+
+    @GetMapping("/")
+    public String index(Model model) {
+        model.addAttribute("appName", "FX & MNB Beadandó");
+        return "index"; // templates/index.html lesz a megjelenített oldal
+    }
+}
