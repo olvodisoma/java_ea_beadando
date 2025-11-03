@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Forex Aktuális Ár (REST API)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4">
+    <h2 class="mb-3">Forex Aktuális Ár</h2>
+
+    <form action="#" th:action="@{/forex/aktar}" method="post" class="mb-4">
+        <label for="pair" class="form-label">Válaszd ki az instrumentumot:</label>
+        <select name="pair" id="pair" class="form-select" required>
+            <option value="">-- Válassz devizapárt --</option>
+            <option th:each="p : ${pairs}"
+                    th:value="${p}"
+                    th:text="${p}"
+                    th:selected="${p == selectedPair}">
+            </option>
+        </select>
+        <button type="submit" class="btn btn-primary mt-3">Lekérés</button>
+    </form>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div th:if="${rate}" class="alert alert-success">
+        <p th:text="'1 ' + ${base} + ' = ' + ${rate} + ' ' + ${target}"></p>
+    </div>
+
+    <a href="/" class="btn btn-secondary mt-3">Vissza a főoldalra</a>
+</div>
+
+</body>
+</html>
