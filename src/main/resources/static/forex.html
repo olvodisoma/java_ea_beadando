@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OANDA Forex Árfolyamok</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css"> <!-- minimal stílus -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Forex Árfolyam Grafikon (OANDA API)</h1>
+
+    <form id="form">
+      <label>Devizapár:
+        <select id="instrument">
+          <option>EUR_USD</option>
+          <option>GBP_USD</option>
+          <option>USD_JPY</option>
+          <option>EUR_HUF</option>
+        </select>
+      </label>
+
+      <label>Időlépték:
+        <select id="granularity">
+          <option value="D">Napi (D)</option>
+          <option value="H4">4 órás (H4)</option>
+          <option value="H1">Óránkénti (H1)</option>
+        </select>
+      </label>
+
+      <button type="submit">Lekérés</button>
+    </form>
+
+    <canvas id="chart" width="800" height="400"></canvas>
+    <div id="status"></div>
+  </main>
+
+  <script>
+    const form = document.getElementById('form');
+    const chartCanvas = document.getElementById('chart');
+    const statusDiv = document.getElementById('status');
+    let chartInstance = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const instrument = document.getElementById('instrument').value;
+      const granularity = document.getElementById('granularity').value;
+
+      statusDiv.textContent = "Lekérés folyamatban...";
+
+      try {
+        const response = await fetch(`/api/forex/history?instrument=${instrument}&granularity=${granularity}`);
+        if (!response.ok) throw new Error(`Hiba a lekérésnél (${response.status})`);
+        const data = await response.json();
+
+        if (!data.candles || data.candles.length === 0) {
+          statusDiv.textContent = "Nincs elérhető adat ehhez a beállításhoz.";
+          return;
+        }
+
+        const labels = data.candles.map(c => new Date(c.time).toLocaleString());
+        const prices = data.candles.map(c => c.close);
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(chartCanvas, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: `${data.instrument} (${data.granularity})`,
+              data: prices,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' }
+            },
+            scales: {
+              y: { title: { display: true, text: 'Ár (USD)' } },
+              x: { title: { display: true, text: 'Időpont' } }
+            }
+          }
+        });
+
+        statusDiv.textContent = `Sikeres lekérés: ${data.candles.length} adatpont.`;
+
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = "⚠️ Hiba: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

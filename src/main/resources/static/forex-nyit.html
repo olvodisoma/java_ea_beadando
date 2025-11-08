@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forex-Nyit (OANDA)</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css">
+</head>
+<body>
+  <main>
+    <h1>Forex-Nyit (piaci ár)</h1>
+    <p>Válaszd ki az instrumentumot, majd add meg a mennyiséget. Pozitív = <b>Long</b>, negatív = <b>Short</b>.</p>
+
+    <form id="form">
+      <label>Instrumentum:
+        <select id="instrument">
+          <option>EUR_USD</option>
+          <option>GBP_USD</option>
+          <option>USD_JPY</option>
+          <option>EUR_HUF</option>
+          <option>USD_HUF</option>
+        </select>
+      </label>
+
+      <label>Mennyiség (units):
+        <input id="units" type="number" step="1" value="100"/>
+      </label>
+
+      <button type="submit">Pozíció nyitása</button>
+    </form>
+
+    <pre id="result" style="white-space:pre-wrap"></pre>
+  </main>
+
+  <script>
+    const form = document.getElementById('form');
+    const result = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const instrument = document.getElementById('instrument').value;
+      const units = parseInt(document.getElementById('units').value || '0', 10);
+
+      result.textContent = "Küldés folyamatban...";
+
+      try {
+        const resp = await fetch('/api/forex/trade/open', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ instrument, units })
+        });
+        const data = await resp.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        result.textContent = "Hiba: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
