@@ -34,4 +34,31 @@ public class TradeService {
         return oanda.listOpenTrades();
     }
 
+    public CloseResult closeById(String tradeIdRaw) {
+    if (tradeIdRaw == null || tradeIdRaw.isBlank()) {
+        return new CloseResult("error", null, null, null, null, "tradeId megadása kötelező.");
+    }
+
+    String tradeId = tradeIdRaw.trim();
+
+    // HEDGING: valódi numerikus tradeId → /trades/{id}/close
+    if (tradeId.matches("\\d+")) {
+        return oanda.closeTradeById(tradeId);
+    }
+
+    // NETTING: szintetikus azonosítók "POS-L-PAIR" / "POS-S-PAIR"
+    if (tradeId.startsWith("POS-L-")) {
+        String instrument = tradeId.substring("POS-L-".length());
+        return oanda.closePosition(instrument, true);
+    }
+    if (tradeId.startsWith("POS-S-")) {
+        String instrument = tradeId.substring("POS-S-".length());
+        return oanda.closePosition(instrument, false);
+    }
+
+    return new CloseResult("error", tradeId, null, null, null,
+            "Ismeretlen azonosító. Hedginghez numerikus tradeId, nettinghez POS-L-PAIR / POS-S-PAIR.");
+}
+
+
 }
