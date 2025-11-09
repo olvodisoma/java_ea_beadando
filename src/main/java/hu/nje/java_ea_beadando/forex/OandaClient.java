@@ -217,10 +217,105 @@ public java.util.List<hu.nje.java_ea_beadando.trade.TradeDto> listOpenTrades() {
                 "Nem sikerült a nyitott pozíciók lekérése: " + ex.getMessage(), ex);
     }
 }
+// HEDGING: trade zárása tradeId szerint (units = "ALL")
+public hu.nje.java_ea_beadando.trade.CloseResult closeTradeById(String tradeId) {
+    try {
+        String url = String.format("%s/accounts/%s/trades/%s/close", baseUrl, accountId, tradeId);
 
+        String body = """
+        { "units": "ALL" }
+        """;
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
+        HttpEntity<String> req = new HttpEntity<>(body, headers);
+        ResponseEntity<String> resp = rest.exchange(url, HttpMethod.PUT, req, String.class);
 
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            return new hu.nje.java_ea_beadando.trade.CloseResult("rejected", tradeId, null, null, null,
+                    "OANDA válaszkód: " + resp.getStatusCode());
+        }
+
+        JsonNode root = om.readTree(resp.getBody());
+        // Sikeres zárás: "orderFillTransaction" tartalmaz árat/időt
+        JsonNode fill = root.get("orderFillTransaction");
+        String instr = null, price = null, time = null;
+        if (fill != null) {
+            instr = fill.path("instrument").asText(null);
+            price = fill.path("price").asText(null);
+            time  = fill.path("time").asText(null);
+            return new hu.nje.java_ea_beadando.trade.CloseResult("closed", tradeId, instr, price, time,
+                    "Trade lezárva (ALL).");
+        }
+
+        // Elutasítás
+        JsonNode reject = root.get("orderRejectTransaction");
+        if (reject != null) {
+            String msg = reject.path("reason").asText("Order rejected");
+            return new hu.nje.java_ea_beadando.trade.CloseResult("rejected", tradeId, null, null, null, msg);
+        }
+
+        return new hu.nje.java_ea_beadando.trade.CloseResult("error", tradeId, null, null, null,
+                "Váratlan OANDA válasz a trade zárására.");
+    } catch (Exception ex) {
+        return new hu.nje.java_ea_beadando.trade.CloseResult("error", tradeId, null, null, null,
+                "Hiba a zárásnál: " + ex.getMessage());
+    }
+}
+
+// NETTING: pozíció zárása instrumentum + oldal alapján ("longUnits"/"shortUnits": "ALL")
+public hu.nje.java_ea_beadando.trade.CloseResult closePosition(String instrument, boolean closeLong) {
+    try {
+        String url = String.format("%s/accounts/%s/positions/%s/close", baseUrl, accountId, instrument);
+
+        // long zárása => longUnits: "ALL", short zárása => shortUnits: "ALL"
+        String body = closeLong
+                ? "{ \"longUnits\": \"ALL\" }"
+                : "{ \"shortUnits\": \"ALL\" }";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> req = new HttpEntity<>(body, headers);
+        ResponseEntity<String> resp = rest.exchange(url, HttpMethod.PUT, req, String.class);
+
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            return new hu.nje.java_ea_beadando.trade.CloseResult("rejected", null, instrument, null, null,
+                    "OANDA válaszkód: " + resp.getStatusCode());
+        }
+
+        JsonNode root = om.readTree(resp.getBody());
+        JsonNode fill = root.get("orderFillTransaction");
+        String price = null, time = null;
+        if (fill != null) {
+            price = fill.path("price").asText(null);
+            time  = fill.path("time").asText(null);
+            return new hu.nje.java_ea_beadando.trade.CloseResult("closed",
+                    (closeLong ? "POS-L-" : "POS-S-") + instrument, instrument, price, time,
+                    "Pozíció lezárva (ALL).");
+        }
+
+        JsonNode reject = root.get("orderRejectTransaction");
+        if (reject != null) {
+            String msg = reject.path("reason").asText("Order rejected");
+            return new hu.nje.java_ea_beadando.trade.CloseResult("rejected",
+                    (closeLong ? "POS-L-" : "POS-S-") + instrument, instrument, null, null, msg);
+        }
+
+        return new hu.nje.java_ea_beadando.trade.CloseResult("error",
+                (closeLong ? "POS-L-" : "POS-S-") + instrument, instrument, null, null,
+                "Váratlan OANDA válasz a pozíció zárására.");
+    } catch (Exception ex) {
+        return new hu.nje.java_ea_beadando.trade.CloseResult("error",
+                (closeLong ? "POS-L-" : "POS-S-") + instrument, instrument, null, null,
+                "Hiba a zárásnál: " + ex.getMessage());
+    }
+}
 
 
 }
