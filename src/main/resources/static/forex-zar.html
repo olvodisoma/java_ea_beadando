@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forex-Zár (OANDA)</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css">
+</head>
+<body>
+<main>
+  <h1>Forex-Zár (piaci áron)</h1>
+  <p>Adj meg egy <b>tradeId</b>-t (szám) és zárd a pozíciót piaci áron. (Hedging számlán valódi trade azonosító.)</p>
+
+  <form id="closeForm">
+    <label>tradeId (numerikus):
+      <input id="tradeIdNum" type="number" min="1" step="1" placeholder="pl. 18">
+    </label>
+    <button type="submit">Zárás</button>
+  </form>
+
+  <pre id="closeResult" style="white-space:pre-wrap"></pre>
+
+  <hr>
+  <h2>Nyitottak (segítségként)</h2>
+  <p>A táblázat segít beazonosítani a zárható elemeket. Hedgingnél valós <b>tradeId</b>-t látsz, nettingnél <code>POS-L-PAIR / POS-S-PAIR</code> formát (ezekhez alább gombok).</p>
+
+  <button id="refresh">Frissítés</button>
+  <div id="status"></div>
+  <div id="table"></div>
+</main>
+
+<script>
+const closeForm = document.getElementById('closeForm');
+const closeResult = document.getElementById('closeResult');
+const refreshBtn = document.getElementById('refresh');
+const statusEl = document.getElementById('status');
+const tableEl = document.getElementById('table');
+
+closeForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tradeIdVal = document.getElementById('tradeIdNum').value.trim();
+  if (!tradeIdVal) { closeResult.textContent = 'Kérlek adj meg numerikus tradeId-t.'; return; }
+
+  try {
+    closeResult.textContent = 'Küldés...';
+    const resp = await fetch('/api/forex/trade/close', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ tradeId: tradeIdVal })
+    });
+    const data = await resp.json();
+    closeResult.textContent = JSON.stringify(data, null, 2);
+    if (data.status === 'closed') loadOpen(); // frissítjük a listát
+  } catch (err) {
+    closeResult.textContent = 'Hiba: ' + err.message;
+  }
+});
+
+async function loadOpen() {
+  statusEl.textContent = 'Lekérdezés...';
+  tableEl.innerHTML = '';
+  try {
+    const resp = await fetch('/api/forex/trade/open-positions');
+    const rows = await resp.json();
+    if (!rows.length) { statusEl.textContent = 'Nincs nyitott pozíció.'; return; }
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Azonosító</th>
+            <th>Instrumentum</th>
+            <th>Units</th>
+            <th>Nyitó ár</th>
+            <th>Unrealized P/L</th>
+            <th>Művelet</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${r.tradeId}</td>
+              <td>${r.instrument}</td>
+              <td>${r.units}</td>
+              <td>${r.openPrice?.toFixed ? r.openPrice.toFixed(5) : r.openPrice}</td>
+              <td>${r.unrealizedPL ?? ''}</td>
+              <td>
+                ${String(r.tradeId).startsWith('POS-L-') || String(r.tradeId).startsWith('POS-S-')
+                  ? `<button data-pos="${r.tradeId}" class="btn-close-pos">Pozíció zárása</button>`
+                  : `<button data-trade="${r.tradeId}" class="btn-close-trade">Trade zárása</button>`}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    tableEl.innerHTML = html;
+    statusEl.textContent = `Sikeres lekérés: ${rows.length} tétel.`;
+
+    document.querySelectorAll('.btn-close-trade').forEach(btn => {
+      btn.addEventListener('click', () => doClose(btn.getAttribute('data-trade')));
+    });
+    document.querySelectorAll('.btn-close-pos').forEach(btn => {
+      btn.addEventListener('click', () => doClose(btn.getAttribute('data-pos')));
+    });
+  } catch (e) {
+    statusEl.textContent = 'Hiba: ' + e.message;
+  }
+}
+
+async function doClose(id) {
+  try {
+    const resp = await fetch('/api/forex/trade/close', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ tradeId: id })
+    });
+    const data = await resp.json();
+    alert(data.status + (data.message ? (': ' + data.message) : ''));
+    if (data.status === 'closed') loadOpen();
+  } catch (e) {
+    alert('Hiba: ' + e.message);
+  }
+}
+
+refreshBtn.addEventListener('click', loadOpen);
+loadOpen();
+</script>
+</body>
+</html>

@@ -23,4 +23,13 @@ public class TradeController {
         return service.openPositions();
     }
 
+    @PostMapping(
+    value = "/close",
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public CloseResult close(@RequestBody CloseRequest req) {
+        return service.closeById(req.tradeId());
+    }
+
 }
