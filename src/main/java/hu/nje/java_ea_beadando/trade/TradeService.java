@@ -3,6 +3,7 @@ package hu.nje.java_ea_beadando.trade;
 import hu.nje.java_ea_beadando.forex.OandaClient;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -28,4 +29,9 @@ public class TradeService {
 
         return oanda.openMarketOrder(req.instrument(), req.units());
     }
+
+        public List<TradeDto> openPositions() {
+        return oanda.listOpenTrades();
+    }
+
 }

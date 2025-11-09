@@ -102,6 +102,7 @@ public hu.nje.java_ea_beadando.trade.OpenOrderResult openMarketOrder(String inst
             "instrument": "%s",
             "units": "%s",
             "type": "MARKET",
+            "timeInForce": "FOK",
             "positionFill": "DEFAULT"
           }
         }
@@ -172,6 +173,53 @@ public hu.nje.java_ea_beadando.trade.OpenOrderResult openMarketOrder(String inst
         );
     }
 }
+
+public java.util.List<hu.nje.java_ea_beadando.trade.TradeDto> listOpenTrades() {
+    try {
+        String url = String.format("%s/accounts/%s/openTrades", baseUrl, accountId);
+
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setAccept(java.util.List.of(org.springframework.http.MediaType.APPLICATION_JSON));
+
+        org.springframework.http.HttpEntity<Void> req = new org.springframework.http.HttpEntity<>(headers);
+        org.springframework.http.ResponseEntity<String> resp =
+                rest.exchange(url, org.springframework.http.HttpMethod.GET, req, String.class);
+
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_GATEWAY, "OANDA hívás sikertelen (openTrades)");
+        }
+
+        com.fasterxml.jackson.databind.JsonNode root = om.readTree(resp.getBody());
+        com.fasterxml.jackson.databind.JsonNode arr = root.get("trades");
+        java.util.List<hu.nje.java_ea_beadando.trade.TradeDto> out = new java.util.ArrayList<>();
+        if (arr != null && arr.isArray()) {
+            for (com.fasterxml.jackson.databind.JsonNode t : arr) {
+                String id   = t.path("id").asText();
+                String instr= t.path("instrument").asText();
+                long units  = 0L;
+                try { units = Long.parseLong(t.path("currentUnits").asText("0")); } catch (Exception ignore) {}
+                double price= t.path("price").asDouble();
+                String time = t.path("openTime").asText(null);
+                String state= t.path("state").asText(null);
+                Double upl  = t.has("unrealizedPL") ? t.path("unrealizedPL").asDouble() : null;
+
+                out.add(new hu.nje.java_ea_beadando.trade.TradeDto(id, instr, units, price, time, state, upl));
+            }
+        }
+        return out;
+    } catch (org.springframework.web.server.ResponseStatusException rse) {
+        throw rse;
+    } catch (Exception ex) {
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_GATEWAY,
+                "Nem sikerült a nyitott pozíciók lekérése: " + ex.getMessage(), ex);
+    }
+}
+
+
+
 
 
 

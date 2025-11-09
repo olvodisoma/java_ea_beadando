@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forex-Poz (nyitott pozíciók)</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css">
+</head>
+<body>
+<main>
+  <h1>Forex-Poz – Nyitott pozíciók</h1>
+  <p>Az OANDA demó számlán jelenleg nyitott pozíciók listája.</p>
+
+  <button id="reload">Frissítés</button>
+  <div id="status"></div>
+  <div id="table"></div>
+</main>
+
+<script>
+  const statusEl = document.getElementById('status');
+  const tableEl  = document.getElementById('table');
+  const reload   = document.getElementById('reload');
+
+  async function loadPositions() {
+    statusEl.textContent = 'Lekérdezés...';
+    tableEl.innerHTML = '';
+    try {
+      const resp = await fetch('/api/forex/trade/open-positions');
+      if (!resp.ok) throw new Error('API hiba: ' + resp.status);
+      const rows = await resp.json();
+
+      if (!rows.length) {
+        statusEl.textContent = 'Nincs nyitott pozíció.';
+        return;
+      }
+
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Trade ID</th>
+              <th>Instrumentum</th>
+              <th>Units</th>
+              <th>Nyitó ár</th>
+              <th>Nyitás ideje</th>
+              <th>Állapot</th>
+              <th>Unrealized P/L</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(t => `
+              <tr>
+                <td>${t.tradeId}</td>
+                <td>${t.instrument}</td>
+                <td>${t.units}</td>
+                <td>${t.openPrice?.toFixed ? t.openPrice.toFixed(5) : t.openPrice}</td>
+                <td>${t.openTime ?? ''}</td>
+                <td>${t.state ?? ''}</td>
+                <td>${t.unrealizedPL ?? ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+      tableEl.innerHTML = html;
+      statusEl.textContent = `Sikeres lekérés: ${rows.length} pozíció.`;
+    } catch (e) {
+      statusEl.textContent = 'Hiba: ' + e.message;
+    }
+  }
+
+  reload.addEventListener('click', loadPositions);
+  loadPositions();
+</script>
+</body>
+</html>

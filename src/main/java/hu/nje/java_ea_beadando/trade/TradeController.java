@@ -17,4 +17,10 @@ public class TradeController {
     public OpenOrderResult open(@RequestBody OpenOrderRequest req) {
         return service.open(req);
     }
+
+    @GetMapping(value = "/open-positions", produces = MediaType.APPLICATION_JSON_VALUE)
+    public java.util.List<TradeDto> openPositions() {
+        return service.openPositions();
+    }
+
 }
