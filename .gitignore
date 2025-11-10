@@ -1,5 +1,9 @@
 HELP.md
-target/
+# Ignore everything in target
+target/*
+
+# Except beadando.jar
+!target/beadando.jar
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
